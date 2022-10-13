@@ -1,5 +1,5 @@
 import torch
-
+import gc
 from models import *
 from utils import *
 from dataset import *
@@ -15,8 +15,9 @@ import utils
 config = CustomParser().parse({})
 config["device"] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device = config["device"]
+print(device)
 learning_rate = config["learning_rate"]
-print(config)
+
 
 # manual seeds
 torch.manual_seed(config["random_seed"])
@@ -33,8 +34,10 @@ denormalize = Denormalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 # TODO: define the generator and discriminator
 # TIP 1: don't forget to apply the weights_init function from utils.py.
 # TIP 2: don't forget to put the models on the correct device.
-generator = models.Generator(config)
-discriminator = models.Discriminator()
+generator = models.Generator(config).to(device)
+generator.apply(weights_init)
+discriminator = models.Discriminator().to(device)
+discriminator.apply(weights_init)
 
 # Weights and biases
 if config["wandb"]:
@@ -55,8 +58,8 @@ adversarial_loss = nn.BCELoss()
 
 # TODO: define optimizers
 
-G_optimizer = torch.optim.Adam(generator.parameters(), lr=config['learning_rate'])
-D_optimizer = torch.optim.Adam(discriminator.parameters(), lr=config['learning_rate'])
+G_optimizer = torch.optim.AdamW(generator.parameters(), lr=config['learning_rate'], betas=(.4, .99), weight_decay=0.00005, eps=1e-8) # PREVIOUS WAS 0.5 -> 0.99
+D_optimizer = torch.optim.AdamW(discriminator.parameters(), lr=config['learning_rate'], betas=(.4, .99), weight_decay=0.00005, eps=1e-8) # PREVIOUS WAS 0.5 -> 0.99
 
 # define all ones and all zeros tensors
 real_target = Variable(torch.ones(config["batch_size"], 1).to(device))
@@ -82,7 +85,6 @@ for epoch in range(1, config["num_epochs"] + 1):
 
         ## Discriminator real ##
         real_images = real_images.to(device)
-
         # TODO: forward through discriminator
         output = discriminator.forward(real_images)
         # TODO: calculate loss (use the function from utils.py)
@@ -92,16 +94,19 @@ for epoch in range(1, config["num_epochs"] + 1):
         ## Discriminator fake ##
         # TODO: create a noise vector of the correct dimensions
         noise_vector = torch.randn(128, config["latent_dim"], 1, 1, device=device)
+
+
+
         # TODO: forward the noise vector through the generator
         generated_image = generator.forward(noise_vector)
         # TODO: forward through the discriminator
-        output = discriminator.forward(generated_image)
+        output = discriminator.forward(generated_image.detach())
         # TODO: calculate loss (use the function from utils.py)
         D_fake_loss = utils.discriminator_loss(adversarial_loss, output, fake_target)
         # TODO: backpropagate the loss
         D_fake_loss.backward()
         # TODO: take a step with the optimizer
-        optim.Optimizer.step()
+        D_optimizer.step()
 
         # Discriminator tot loss
         D_total_loss = D_real_loss + D_fake_loss
@@ -112,12 +117,15 @@ for epoch in range(1, config["num_epochs"] + 1):
         # TODO: forward generated image through the discriminator
         gen_output = discriminator.forward(generated_image)
         # TODO: calculate loss (use the function from utils.py)
-        G_loss = utils.discriminator_loss(adversarial_loss, gen_output, real_target)
+
+        #G_loss = utils.discriminator_loss(adversarial_loss, gen_output, real_target)
+        G_loss = utils.generator_loss(adversarial_loss, gen_output, real_target)
+
         G_loss_list.append(G_loss)
         # TODO: backpropagate the loss
         G_loss.backward()
         # TODO: take a step with the optimizer
-        optim.Optimizer.step()
+        G_optimizer.step()
 
 
     discr_loss_mean = torch.mean(torch.FloatTensor(D_loss_list)).item()
@@ -146,3 +154,5 @@ for epoch in range(1, config["num_epochs"] + 1):
 
     torch.save(generator.state_dict(), f"{config['save_path']}/generator_epoch_{epoch}.pth")
     torch.save(discriminator.state_dict(), f"{config['save_path']}/discriminator_epoch_{epoch}.pth")
+
+
