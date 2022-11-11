@@ -41,7 +41,7 @@ discriminator.apply(weights_init)
 
 # Weights and biases
 if config["wandb"]:
-    wandb.init(project="GAN_project", entity="arafa42", name=config["name"] + "_train")
+    wandb.init(project="GAN", entity="team_sigma", name=config["name"] + "_train_default")
     wandb.config = {
         "learning_rate": config['learning_rate'],
         "epochs": config['num_epochs'],

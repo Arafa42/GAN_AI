@@ -6,7 +6,7 @@ class CustomParser:
         self.parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
         ### TRAINING OPTIONS ###
-        self.parser.add_argument('--num_epochs', type=int, default=40)
+        self.parser.add_argument('--num_epochs', type=int, default=30)
         self.parser.add_argument('--learning_rate', type=float, default=0.0002) # DEFAULT O.0002
         self.parser.add_argument('--batch_size', type=int, default=128) #128 original value
         self.parser.add_argument('--latent_dim', type=int, default=128) #DEFAULT 100
