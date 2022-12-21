@@ -16,6 +16,14 @@ config = CustomParser().parse({})
 config["device"] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device = config["device"]
 print(device)
+print(torch. __version__)
+print(f"Is CUDA supported by this system? {torch.cuda.is_available()}")
+print(f"CUDA version: {torch.version.cuda}")
+
+# Storing ID of current CUDA device
+cuda_id = torch.cuda.current_device()
+print(f"ID of current CUDA device:{torch.cuda.current_device()}")
+
 learning_rate = config["learning_rate"]
 
 
@@ -41,7 +49,7 @@ discriminator.apply(weights_init)
 
 # Weights and biases
 if config["wandb"]:
-    wandb.init(project="GAN_project", entity="arafa42", name=config["name"] + "_train")
+    wandb.init(project="GAN", entity="team_sigma", name=config["name"] + "_train_default")
     wandb.config = {
         "learning_rate": config['learning_rate'],
         "epochs": config['num_epochs'],
